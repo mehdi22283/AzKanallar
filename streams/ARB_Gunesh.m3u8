@@ -1,0 +1,10 @@
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-STREAM-INF:BANDWIDTH=3000000
+https://raw.githubusercontent.com/UzunMuhalefet/streams/refs/heads/main/myvideo-az/arb-gunes.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=3000000
+http://185.32.44.154/arbgunesh/mono.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=3000000
+http://185.118.50.218/arbgunesh/mono.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=3000000
+http://149.255.154.194/arbgunesh/tracks-v1a1/mono.m3u8
