@@ -1,0 +1,42 @@
+name: Hər 10 dəqiqədən bir kanalları yoxla
+
+on:
+  schedule:
+    - cron: '*/10 * * * *' # Hər 10 dəqiqədən bir avtomatik işə salma
+  workflow_dispatch: # İstədiyiniz zaman əllə də başlada bilməyiniz üçün
+
+permissions:
+  contents: write
+
+jobs:
+  check-and-update:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Kodu kopyala
+      uses: actions/checkout@v4
+
+    - name: Python mühitini qur
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Lazımi kitabxanaları yüklə
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests
+
+    - name: Skripti icra et
+      run: python check_streams.py
+
+    - name: Dəyişiklikləri GitHub-a göndər
+      run: |
+        git config --global user.name "GitHub Action Bot"
+        git config --global user.email "actions@github.com"
+        git add streams/*.m3u8
+        if git diff --staged --quiet; then
+          echo "Heç bir dəyişiklik yoxdur, commit edilmədi."
+        else
+          git commit -m "Yenilənmə: İşlək IPTV linkləri ön sıraya çəkildi [skip ci]"
+          git push
+        fi
