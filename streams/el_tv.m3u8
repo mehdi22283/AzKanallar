@@ -1,0 +1,6 @@
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-STREAM-INF:BANDWIDTH=3000000
+https://live.eltv.az/live/eltv/playlist.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=3000000
+http://149.255.154.194/eltv/mono.m3u8
