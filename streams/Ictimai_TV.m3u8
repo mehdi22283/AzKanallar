@@ -1,8 +1,0 @@
-#EXTM3U
-#EXT-X-VERSION:3
-#EXT-X-STREAM-INF:BANDWIDTH=3000000
-https://raw.githubusercontent.com/UzunMuhalefet/streams/refs/heads/main/myvideo-az/ictimai-tv.m3u8
-http://185.32.44.154/IctimaiHD/mono.m3u8
-http://185.118.50.218/ictimaitv/mono.m3u8
-http://149.255.154.194/ictimaitele/tracks-v1a1/mono.m3u8
-https://live.itv.az/itv.m3u8
