@@ -34,4 +34,4 @@ for name, urls in channels.items():
         f.write("#EXTM3U\n#EXT-X-VERSION:3\n")
         for link in final_list:
             f.write(f"#EXT-X-STREAM-INF:BANDWIDTH=3000000\n{link}\n")
-          
+            
