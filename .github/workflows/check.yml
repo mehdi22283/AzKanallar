@@ -1,42 +1,39 @@
-name: Hər 10 dəqiqədən bir kanalları yoxla
+name: IPTV Kanalları Yenilə
 
 on:
   schedule:
-    - cron: '*/10 * * * *' # Hər 10 dəqiqədən bir avtomatik işə salma
-  workflow_dispatch: # İstədiyiniz zaman əllə də başlada bilməyiniz üçün
+    # Hər 10 dəqiqədən bir işə salır
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # İstədiyiniz an əllə də başladabilmək üçün
 
 permissions:
   contents: write
 
 jobs:
-  check-and-update:
+  update-links:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Kodu kopyala
+    - name: Reponu Kopyala
       uses: actions/checkout@v4
 
-    - name: Python mühitini qur
+    - name: Python Quraşdır
       uses: actions/setup-python@v5
       with:
         python-version: '3.10'
 
-    - name: Lazımi kitabxanaları yüklə
+    - name: Lazımi Kitabxanaları Yüklə
       run: |
         python -m pip install --upgrade pip
         pip install requests
 
-    - name: Skripti icra et
+    - name: Linkləri Yoxla və Çeşidlə
       run: python check_streams.py
 
-    - name: Dəyişiklikləri GitHub-a göndər
+    - name: Dəyişiklikləri GitHub-a Göndər
       run: |
-        git config --global user.name "GitHub Action Bot"
-        git config --global user.email "actions@github.com"
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
         git add streams/*.m3u8
-        if git diff --staged --quiet; then
-          echo "Heç bir dəyişiklik yoxdur, commit edilmədi."
-        else
-          git commit -m "Yenilənmə: İşlək IPTV linkləri ön sıraya çəkildi [skip ci]"
-          git push
-        fi
+        # Yalnız dəyişiklik varsa commit etsin ki, xəta verməsin
+        git diff --staged --quiet || (git commit -m "Uptade: Kanalların linkləri yeniləndi [cron]" && git push)
