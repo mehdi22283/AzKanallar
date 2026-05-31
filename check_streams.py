@@ -1,12 +1,8 @@
 import os
 import requests
+import re
 
-# VLC User-Agent brauzer kimi görünməmək və iptv linklərini düzgün yoxlamaq üçün
-HEADERS = {
-    'User-Agent': 'VLC/3.0.18 LibVLC/3.0.18'
-}
-
-# Sənin verdiyin kanallar və prioritet sırası ilə linklər
+# Kanallar və onların linkləri (Prioritet sırası ilə)
 CHANNELS = {
     "ARB_TV": [
         "http://185.32.44.154/arb/mono.m3u8",
@@ -94,7 +90,7 @@ CHANNELS = {
         "http://149.255.154.194/space/tracks-v1a1/mono.m3u8",
         "https://raw.githubusercontent.com/UzunMuhalefet/streams/refs/heads/main/myvideo-az/space-tv.m3u8"
     ],
-    "TMB_TV": [
+    "TMB": [
         "http://185.118.50.218/tmb/mono.m3u8",
         "http://149.255.154.194/tmb/tracks-v1a1/mono.m3u8",
         "https://raw.githubusercontent.com/UzunMuhalefet/streams/refs/heads/main/myvideo-az/tmb-tv.m3u8",
@@ -116,47 +112,76 @@ CHANNELS = {
     ]
 }
 
-def is_live(url):
-    """Linkin aktiv olub-olmadığını yoxlayır (VLC headers ilə)"""
+# Brauzer bloklamasının qarşısını almaq üçün VLC/IPTV Player User-Agent başlığı
+HEADERS = {
+    "User-Agent": "VLC/3.0.18 LibVLC/3.0.18",
+    "Accept": "*/*"
+}
+
+def check_link(url):
+    """Linkin aktivliyini və daxilindəki bandwidth (keyfiyyət) dəyərini yoxlayır."""
     try:
-        # GET əvəzinə HEAD sorğusu göndəririk ki, vaxt aparmasın və trafiki yükləməsin
-        response = requests.head(url, headers=HEADERS, timeout=5, allow_redirects=True)
+        # İPTV pleyer kimi sorğu göndəririk (Həmçinin çox gözləməmək üçün 5 saniyə vaxt qoyuruq)
+        response = requests.get(url, headers=HEADERS, timeout=5, verify=False)
         if response.status_code == 200:
-            return True
-        # Bəzi serverlər HEAD sorğusunu dəstəkləmir, ona görə GET ilə təkrar yoxlayırıq
-        response = requests.get(url, headers=HEADERS, timeout=5, stream=True)
-        return response.status_code == 200
+            content = response.text
+            # m3u8 daxilində BANDWIDTH dəyərini axtarırıq (Məsələn: BANDWIDTH=3000000)
+            bandwidth_match = re.search(r"BANDWIDTH=(\d+)", content, re.IGNORECASE)
+            if bandwidth_match:
+                return True, int(bandwidth_match.group(1))
+            return True, 0  # Əgər bandwidth tapılmasa amma link işləsə, 0 qayıdır
     except Exception:
-        return False
+        pass
+    return False, -1
 
-# Çıxış qovluğunu yarat
-os.makedirs("streams", exist_ok=True)
+def process_channels():
+    # Çıxış qovluğunu yaradırıq
+    output_dir = "streams"
+    os.makedirs(output_dir, exist_ok=True)
 
-for channel_name, urls in CHANNELS.items():
-    working_urls = []
-    dead_urls = []
-    
-    # Sıra ilə linkləri yoxla (Sənin yazdığın prioritet ardıcıllıq qorunur)
-    for url in urls:
-        if is_live(url):
-            working_urls.append(url)
-        else:
-            dead_urls.append(url)
+    for channel_name, urls in CHANNELS.items():
+        alive_links = []
+        dead_links = []
+
+        for index, url in enumerate(urls):
+            is_alive, bandwidth = check_link(url)
             
-    # Hər iki halda linkləri birləşdir (Öncə işləklər, sonra digərləri)
-    final_list = working_urls + dead_urls
-    
-    # Əgər heç bir link işləmirsə, köhnə prioritet siyahısını qoru (bütünlük üçün)
-    if not final_list:
-        final_list = urls
+            # Link məlumatını saxlayırıq (orijinal sıra nömrəsi prioritet üçün lazımdır)
+            link_info = {
+                "url": url,
+                "bandwidth": bandwidth,
+                "original_index": index
+            }
 
-    # Faylın məzmununu sənin istədiyin kimi formatla
-    m3u8_content = "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-STREAM-INF:BANDWIDTH=3000000\n"
-    m3u8_content += "\n".join(final_list) + "\n"
-    
-    # Faylı streams qovluğunda kanal adına uyğun m3u8 olaraq yadda saxla
-    file_path = f"streams/{channel_name}.m3u8"
-    with open(file_path, "w", encoding="utf-8") as f:
-        f.write(m3u8_content)
+            if is_alive:
+                alive_links.append(link_info)
+            else:
+                dead_links.append(link_info)
+
+        # Sıralama qaydası: 
+        # 1. Öncə ən yüksək BANDWIDTH (keyfiyyət) olanlar gəlsin.
+        # 2. Keyfiyyət eynidirsə, sizin ilkin yazdığınız prioritet sırasına (original_index) baxsın.
+        alive_links.sort(key=lambda x: (-x["bandwidth"], x["original_index"]))
+
+        # İşlək linklər başda, ölü (ehtiyat) linklər isə aşağıda ardıcıllıqla düzülür
+        final_sorted_urls = [item["url"] for item in alive_links] + [item["url"] for item in dead_links]
+
+        # M3U8 faylının məzmununu formalaşdırırıq
+        file_content = "#EXTM3U\n#EXT-X-VERSION:3\n"
+        for url in final_sorted_urls:
+            file_content += "#EXT-X-STREAM-INF:BANDWIDTH=3000000\n"
+            file_content += f"{url}\n"
+
+        # Faylı streams qovluğuna yazırıq (Məsələn: streams/ARB_TV.m3u8)
+        file_path = os.path.join(output_dir, f"{channel_name}.m3u8")
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(file_content)
         
-    print(f"{channel_name}.m3u8 yeniləndi. Aktiv link sayı: {len(working_urls)}")
+        print(f"[UĞURLU] {channel_name}.m3u8 yeniləndi. Aktiv link sayı: {len(alive_links)}")
+
+if __name__ == "__main__":
+    # SSL xəbərdarlıqlarını gizlətmək üçün (Bəzi köhnə dövlət tv serverləri üçün)
+    import urllib3
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    
+    process_channels()
