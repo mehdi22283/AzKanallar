@@ -3,8 +3,8 @@
 #EXT-X-STREAM-INF:BANDWIDTH=3000000
 http://149.255.154.194/azertv/tracks-v1a1/mono.m3u8
 #EXT-X-STREAM-INF:BANDWIDTH=3000000
+https://raw.githubusercontent.com/KarabagIsAzerbaijan/WEB-STREAM/6b9b59bc25103c5a1630b92d33bcf8c6a3dfd715/aztv.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=3000000
 http://185.32.44.154/AzTVHD/mono.m3u8
 #EXT-X-STREAM-INF:BANDWIDTH=3000000
 http://185.118.50.218/aztv/mono.m3u8
-#EXT-X-STREAM-INF:BANDWIDTH=3000000
-https://raw.githubusercontent.com/KarabagIsAzerbaijan/WEB-STREAM/6b9b59bc25103c5a1630b92d33bcf8c6a3dfd715/aztv.m3u8
