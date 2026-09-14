@@ -25,10 +25,8 @@ with urllib.request.urlopen(request, timeout=30) as response:
     html = response.read().decode("utf-8", errors="ignore")
 
 print("HTML alındı.")
-print(f"HTML ölçüsü: {len(html)} simvol")
 
 
-# const videoSrc = "URL"
 patterns = [
     r'const\s+videoSrc\s*=\s*["\']([^"\']+)["\']',
     r'let\s+videoSrc\s*=\s*["\']([^"\']+)["\']',
@@ -46,12 +44,10 @@ for pattern in patterns:
 
 
 if not video_src:
-    print("XƏTA: const videoSrc tapılmadı.")
+    print("XƏTA: videoSrc tapılmadı.")
 
-    # Debug üçün videoSrc olan sətirləri göstər
     for line in html.splitlines():
         if "videoSrc" in line:
-            print("TAPILAN SƏTİR:")
             print(line[:1000])
 
     raise SystemExit(1)
@@ -62,13 +58,14 @@ print(video_src)
 
 
 if not video_src.startswith(("http://", "https://")):
-    raise RuntimeError(
-        "videoSrc HTTP/HTTPS URL deyil."
-    )
+    raise RuntimeError("videoSrc düzgün URL deyil.")
 
 
+# İstənilən M3U8 formatı
 m3u_content = f"""#EXTM3U
-#EXTINF:-1,Euro Star
+#EXTVLCOPT:http-user-agent=WINK/1.28.2 (AndroidTV/9) HlsWinkPlayer
+#EXT-X-VERSION:3
+#EXT-X-STREAM-INF:BANDWIDTH=2096000
 {video_src}
 """
 
@@ -79,7 +76,5 @@ Path(OUTPUT_FILE).write_text(
 )
 
 print()
-print("================================")
-print("M3U8 uğurla yaradıldı!")
-print("================================")
-print(f"Fayl: {OUTPUT_FILE}")
+print("M3U8 uğurla yaradıldı:")
+print(OUTPUT_FILE)
