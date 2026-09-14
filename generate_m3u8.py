@@ -1,76 +1,85 @@
 import re
-import requests
+import urllib.request
 from pathlib import Path
 
 SOURCE_URL = "https://www.parsatv.com/m/name=Euro-Star"
 OUTPUT_FILE = "euro-star.m3u8"
 
-HEADERS = {
+headers = {
     "User-Agent": (
         "Mozilla/5.0 (Linux; Android 10; K) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "AppleWebKit/537.36 "
+        "(KHTML, like Gecko) "
         "Chrome/140.0 Mobile Safari/537.36"
     )
 }
 
+request = urllib.request.Request(
+    SOURCE_URL,
+    headers=headers
+)
 
-def extract_video_src(html):
-    # const videoSrc = "https://....m3u8";
-    patterns = [
-        r'const\s+videoSrc\s*=\s*["\']([^"\']+)["\']',
-        r'let\s+videoSrc\s*=\s*["\']([^"\']+)["\']',
-        r'var\s+videoSrc\s*=\s*["\']([^"\']+)["\']',
-    ]
+print("Sayt yüklənir...")
 
-    for pattern in patterns:
-        match = re.search(pattern, html, re.IGNORECASE)
+with urllib.request.urlopen(request, timeout=30) as response:
+    html = response.read().decode("utf-8", errors="ignore")
 
-        if match:
-            return match.group(1).strip()
-
-    return None
+print("HTML alındı.")
+print(f"HTML ölçüsü: {len(html)} simvol")
 
 
-def main():
-    print(f"Downloading: {SOURCE_URL}")
+# const videoSrc = "URL"
+patterns = [
+    r'const\s+videoSrc\s*=\s*["\']([^"\']+)["\']',
+    r'let\s+videoSrc\s*=\s*["\']([^"\']+)["\']',
+    r'var\s+videoSrc\s*=\s*["\']([^"\']+)["\']',
+]
 
-    response = requests.get(
-        SOURCE_URL,
-        headers=HEADERS,
-        timeout=30
+video_src = None
+
+for pattern in patterns:
+    match = re.search(pattern, html, re.IGNORECASE)
+
+    if match:
+        video_src = match.group(1).strip()
+        break
+
+
+if not video_src:
+    print("XƏTA: const videoSrc tapılmadı.")
+
+    # Debug üçün videoSrc olan sətirləri göstər
+    for line in html.splitlines():
+        if "videoSrc" in line:
+            print("TAPILAN SƏTİR:")
+            print(line[:1000])
+
+    raise SystemExit(1)
+
+
+print("videoSrc tapıldı:")
+print(video_src)
+
+
+if not video_src.startswith(("http://", "https://")):
+    raise RuntimeError(
+        "videoSrc HTTP/HTTPS URL deyil."
     )
 
-    response.raise_for_status()
 
-    html = response.text
-
-    video_src = extract_video_src(html)
-
-    if not video_src:
-        raise RuntimeError(
-            "HTML source daxilində const videoSrc tapılmadı."
-        )
-
-    print("Found videoSrc:")
-    print(video_src)
-
-    if not video_src.startswith(("http://", "https://")):
-        raise RuntimeError(
-            f"Tapılan videoSrc düzgün URL deyil: {video_src}"
-        )
-
-    content = f"""#EXTM3U
+m3u_content = f"""#EXTM3U
 #EXTINF:-1,Euro Star
 {video_src}
 """
 
-    Path(OUTPUT_FILE).write_text(
-        content,
-        encoding="utf-8"
-    )
 
-    print(f"Created: {OUTPUT_FILE}")
+Path(OUTPUT_FILE).write_text(
+    m3u_content,
+    encoding="utf-8"
+)
 
-
-if __name__ == "__main__":
-    main()
+print()
+print("================================")
+print("M3U8 uğurla yaradıldı!")
+print("================================")
+print(f"Fayl: {OUTPUT_FILE}")
